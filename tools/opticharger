@@ -25,7 +25,7 @@ else
 	OUT_DIR=$ANDROID_BUILD_TOP/out
 fi
 
-. $ANDROID_BUILD_TOP/vendor/rascarlo/tools/fuctions
+. $ANDROID_BUILD_TOP/vendor/rascarlo/tools/functions
 
 set -e
 QUIET=1

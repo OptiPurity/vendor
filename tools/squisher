@@ -24,7 +24,7 @@ if [ -z "$OUT" -o ! -d "$OUT" ]; then
 	exit 1
 fi
 
-OPTICHARGER=$ANDROID_BUILD_TOP/vendor/liquid/tools/opticharger
+OPTICHARGER=$ANDROID_BUILD_TOP/vendor/rascarlo/tools/opticharger
 QUIET=-q
 DELETE_BINS="applypatch applypatch_static check_prereq recovery updater"
 DELETE_LIBS="libc_malloc_debug_leak.so libc_malloc_debug_qemu.so"
@@ -104,10 +104,6 @@ rm -rf $REPACK/ota/system/etc/recovery-resource.dat
 	find $REPACK/ota/system/lib/modules -name "*.ko" -print0 | xargs -0 arm-eabi-strip --strip-unneeded
 
 OUTFILE=$OUT/Cl3Kener-Opticharged.zip
-
-# Add changelog
-. $ANDROID_BUILD_TOP/vendor/liquid/tools/changelog
-
 
 # Pack it up and sign
 printf "Zipping package..."

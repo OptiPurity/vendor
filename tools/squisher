@@ -1,8 +1,10 @@
-#!/bin/sh
+#!/bin/bash
 #
 # Squish a CM otapackage for distribution
-# cyanogen
 #
+# cyanogen
+# AOKP
+
 . $ANDROID_BUILD_TOP/vendor/rascarlo/tools/functions
 
 OUT_TARGET_HOST=`uname -a | grep Darwin`
@@ -14,36 +16,100 @@ then
    SED=sed
 else
    OUT_TARGET_HOST=darwin-x86
-   MD5=md5
+   MD5="md5 -r "
    XARGS="xargs -n 1 -P `sysctl hw.ncpu | awk '{print $2}'`"
    SED=gsed
 fi
 
 if [ -z "$OUT" -o ! -d "$OUT" ]; then
-	echo $CL_RED"ERROR: $0 only works with a full build environment. $OUT should exist."$CL_RST
+	echo -e "ERROR: $0 only works with a full build environment. $OUT should exist."
+	exit 1
+fi
+
+# out/ dir defined elsewhere
+if [ ! -z $OUT_DIR_COMMON_BASE ]; then
+	TREE_NAME=`basename $ANDROID_BUILD_TOP`
+	OUT_DIR=$OUT_DIR_COMMON_BASE/$TREE_NAME
+else
+	OUT_DIR=$ANDROID_BUILD_TOP/out
+fi
+
+if [ "$TARGET_BUILD_TYPE" = "debug" ]; then
+    OTAPACKAGE=$OUT/${TARGET_PRODUCT}_debug-ota-$TARGET_BUILD_VARIANT.$USER.zip
+elif [ "$TARGET_BUILD_VARIANT" = "userdebug" ]; then
+    OTAPACKAGE=$OUT/$TARGET_PRODUCT-ota-eng.$USER.zip
+else
+    OTAPACKAGE=$OUT/$TARGET_PRODUCT-ota-$TARGET_BUILD_VARIANT.$USER.zip
+fi
+if [ ! -f "$OTAPACKAGE" ]; then
+	echo -e "$OTAPACKAGE doesn't exist!";
 	exit 1
 fi
 
 OPTICHARGER=$ANDROID_BUILD_TOP/vendor/rascarlo/tools/opticharger
 QUIET=-q
 DELETE_BINS="applypatch applypatch_static check_prereq recovery updater"
-DELETE_LIBS="libc_malloc_debug_leak.so libc_malloc_debug_qemu.so"
-DELETE_FONTS="MTLmr3m.ttf"
-DELETE_MEDIA="*.qmg"
+
+
+# Some products want a squashfs for xbin for space
+case "$TARGET_PRODUCT" in
+	cyanogen_dream_sapphire) WANT_SQUASHFS=1 ;;
+	*) WANT_SQUASHFS=0 ;;
+esac
+
+if [ "$WANT_SQUASHFS" -eq 1 ]; then
+	fatal=0
+	MKSQUASHFS_VER_REQ=4
+	if type mksquashfs >/dev/null 2>&1; then
+		if mksquashfs -version | grep -q "version $MKSQUASHFS_VER_REQ"; then :; else
+			echo -e
+			echo -e $CL_RED"ERROR: mksquashfs must be at least version $MKSQUASHFS_VER_REQ for this build."$CL_RST
+			fatal=1
+		fi
+	else
+		echo -e
+		echo -e $CL_RED"ERROR: $TARGET_PRODUCT requires mksquashfs."$CL_RST
+		fatal=1
+	fi
+
+	if [ "$fatal" -ne 0 ]; then
+		echo -e
+		echo -e $CL_YLW"       Unoptimized package is still available at"
+		echo -e "         $OTAPACKAGE"$CL_RST
+		exit $fatal
+	fi
+fi
 
 REPACK=$OUT/repack.d
-printf "Sanitizing Environment..."
+echo -e $CL_RED"Sanitizing environment..."$CL_RST
 rm -rf $REPACK
 mkdir -p $REPACK
-echo
+echo -e
+
 
 # Unpack the otapackage and opticharge all apks
 mkdir $REPACK/ota
 (
 cd $REPACK/ota
-printf "Unpacking $OTAPACKAGE..."
+echo -e $CL_RED"Unpacking $OTAPACKAGE..."$CL_RST
 unzip $QUIET $OTAPACKAGE
-echo
+echo -e
+
+# Trim LatinIME.apk a bit
+zip -d  system/app/LatinIME.apk \
+	res/raw/main_cs.dict \
+	res/raw/main_da.dict \
+	res/raw/main_el.dict \
+	res/raw/main_fi.dict \
+	res/raw/main_hr.dict \
+	res/raw/main_hu.dict \
+	res/raw/main_iw.dict \
+	res/raw/main_ka.dict \
+	res/raw/main_nb.dict \
+	res/raw/main_nl.dict \
+	res/raw/main_pt_br.dict \
+	res/raw/main_pt_pt.dict \
+	res/raw/main_sv.dict
 
 # Move all apks to the same directory so xargs can
 # use also with framework-res.apk. This allow process
@@ -60,10 +126,45 @@ find ./ -name \*.apk | $XARGS $OPTICHARGER
 mv -f $REPACK/parallel/framework-res.apk $REPACK/ota/system/framework/framework-res.apk
 mv -f $REPACK/parallel/*.apk $REPACK/ota/system/app/
 
+# Optimize /priv-app/
+cp $REPACK/ota/system/priv-app/*.apk .
+find ./ -name \*.apk | $XARGS $OPTICHARGER
+mv -f $REPACK/parallel/*.apk $REPACK/ota/system/priv-app/
+
 # Return to directory
 cd $REPACK/ota
 rm -rf $REPACK/parallel
 )
+
+
+if [ "$WANT_SQUASHFS" -eq 1 ]; then
+	squash_opts="-force-uid 1000 -force-gid 1000 -no-progress -noappend -no-exports -no-recovery"
+	updater=$REPACK/ota/META-INF/com/google/android/updater-script
+
+	# Relocate su
+	cp -a $REPACK/ota/system/xbin $REPACK/_xbin/
+	rm -f $REPACK/_xbin/su $REPACK/ota/system/bin/su
+	mv $REPACK/ota/system/xbin/su $REPACK/ota/system/bin/su
+	chmod -R 555 $REPACK/_xbin/*
+
+	# Create symlinks for su and busybox (since updater-script can't work on the squashfs filesystem).
+	# Forgive me for the regex hell here.
+	ln -s ../bin/su $REPACK/_xbin/su
+	for link in `sed -n -e's/,//g' -e'/symlink(.*busybox/,/xbin.*);/p' $updater | tr '"' '\n' | sed -n -e'\,/system/xbin/,s,/system/xbin/,,p'`
+	do
+		ln -s busybox $REPACK/_xbin/$link
+	done
+
+	# Create the squashfs with new and improved symlinkage!
+	mksquashfs $REPACK/_xbin/* $REPACK/_xbin.sqf $squash_opts
+	rm -rf $REPACK/ota/system/xbin/*
+	mv $REPACK/_xbin.sqf $REPACK/ota/system/xbin/xbin.sqf
+	chmod 444 $REPACK/ota/system/xbin/xbin.sqf
+
+	# Remove xbin stuff and fix up updater-script
+	$SED -i -e's,system/xbin/su,system/bin/su,g' -e'/xbin/d' $updater
+fi
+
 
 # Fix build.prop
 $SED -i \
@@ -71,64 +172,56 @@ $SED -i \
 	-e '/ro\.build\.type/s/eng/user/' \
 	$REPACK/ota/system/build.prop
 
+
 # Delete unnecessary binaries
-( cd $REPACK/ota/system/bin; echo $DELETE_BINS | xargs rm -f; )
+( cd $REPACK/ota/system/bin; echo -e $DELETE_BINS | xargs rm -f; )
 
-# Delete unnecessary libraries
-( cd $REPACK/ota/system/lib; echo $DELETE_LIBS | xargs rm -f; )
-
-# Delete Offline charging mode files
-( cd $REPACK/ota/system/media; echo $DELETE_MEDIA | xargs rm -f; )
-
-# No need for modem.bin
-rm -f $REPACK/ota/modem.bin
-
-# No need for media/video
-rm -rf $REPACK/ota/system/media/video
-
-# Delete Unnecessary Fonts
-( cd $REPACK/ota/system/fonts; echo $DELETE_FONTS | xargs rm -f; )
-
-# No need for tts
-rm -rf $REPACK/ota/system/tts
-
-# No need for srec
-rm -rf $REPACK/ota/system/usr/srec
+# Delete leftover wireless driver
+# rm -rf $REPACK/ota/system/lib/modules/*/kernel/drivers/net
 
 # No need for recovery
 rm -rf $REPACK/ota/recovery
-rm -rf $REPACK/ota/system/etc/recovery-resource.dat
 
 # Strip modules
 [ -d $REPACK/ota/system/lib/modules ] && \
 	find $REPACK/ota/system/lib/modules -name "*.ko" -print0 | xargs -0 arm-eabi-strip --strip-unneeded
 
-OUTFILE=$OUT/Cl3Kener-Opticharged.zip
+# Determine what to name the new signed package
+
+#MODVERSION=`sed -n -e'/ro\.modversion/s/^.*=//p' $REPACK/ota/system/build.prop`
+VERSION=Cl3Kener-Opticharged.zip $REPACK/ota/system/build.prop`
+MODVERSION="$VERSION"
+OUTFILE=$OUT/$MODVERSION.zip
 
 # Pack it up and sign
-printf "Zipping package..."
+echo -e $CL_RED"Zipping package..."$CL_RST
 ( cd $REPACK/ota; zip $QUIET -r $REPACK/update.zip . )
-echo
-printf "Signing package..."
+echo -e
+echo -e $CL_RED"Signing package..."$CL_RST
 SECURITYDIR=$ANDROID_BUILD_TOP/build/target/product/security
 java -Xmx1024m \
-	-jar $OUT/../../../host/$OUT_TARGET_HOST/framework/signapk.jar \
+	-jar $OUT_DIR/host/$OUT_TARGET_HOST/framework/signapk.jar \
 	-w $SECURITYDIR/testkey.x509.pem $SECURITYDIR/testkey.pk8 \
 	$REPACK/update.zip $OUTFILE
-echo
-printf "Cleaning up..."
+echo -e
+echo -e $CL_RED"Cleaning up..."$CL_RST
 rm -rf $REPACK
-echo
+echo -e
 
 # Create a md5 checksum image of the repacked package
 (
 img=`basename $OUTFILE`
 cd `dirname $OUTFILE`
 $MD5 $img >$img.md5sum
-echo
-echo $CL_GRN"Package complete: $OUTFILE"$CL_RST
-echo $CL_GRN"md5: $(cat $img.md5sum | awk '{ print $1 }')"$CL_RST
-echo
+ZIPSIZE=`ls -lah $OUTFILE | awk '{ print $5}' `
+echo -e
+echo -e $CL_RED"=========================== Packages complete ====================================="$CL_RST
+echo -e $CL_RED"| ZIP:"$CL_RED" $OUTFILE                                                            "$CL_RST
+echo -e $CL_RED"| MD5:"$CL_RED" $(cat $img.md5sum | awk '{ print $1 }')                             "$CL_RST
+echo -e $CL_RED"| SIZE:"$CL_RED" $ZIPSIZE                                                           "$CL_RST
+echo -e $CL_RED"============================= Now flash it ========================================"$CL_RST
+echo -e
 )
 
 exit 0
+

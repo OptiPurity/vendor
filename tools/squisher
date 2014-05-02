@@ -200,11 +200,11 @@ $MD5 $img >$img.md5sum
 ZIPSIZE=`ls -lah $OUTFILE | awk '{ print $5}' `
 echo -e
 echo -e
-echo -e $CL_RED"====================== Dirty Unicorns complete ====================================="$CL_RST
+echo -e $CL_RED"====================== Package complete ====================================="$CL_RST
 echo -e $CL_RED"| ZIP:"$CL_RED" $OUTFILE                                                            "$CL_RST
 echo -e $CL_RED"| MD5:"$CL_RED" $(cat $img.md5sum | awk '{ print $1 }')                             "$CL_RST
 echo -e $CL_RED"| SIZE:"$CL_RED" $ZIPSIZE                                                           "$CL_RST
-echo -e $CL_RED"======================== Now flash that shit ======================================="$CL_RST
+echo -e $CL_RED"============================================================================="$CL_RST
 echo -e
 )
 

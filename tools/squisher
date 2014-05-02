@@ -173,7 +173,8 @@ rm -rf $REPACK/ota/recovery
 # Determine what to name the new signed package
 
 #MODVERSION=`sed -n -e'/ro\.modversion/s/^.*=//p' $REPACK/ota/system/build.prop`
-VERSION=Cl3Kener-Opticharged
+export curdate=`date "+%m-%d-%Y"`
+VERSION=Cl3Kener-Rastakat-Hammerhead-Opticharged-$curdate
 MODVERSION="$VERSION"
 OUTFILE=$OUT/$MODVERSION.zip
 

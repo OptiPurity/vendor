@@ -58,7 +58,3 @@ PRODUCT_COPY_FILES += \
 PRODUCT_COPY_FILES += \
     frameworks/native/data/etc/android.software.sip.voip.xml:system/etc/permissions/android.software.sip.voip.xml
 
-# Purity U2D
-PRODUCT_COPY_FILES += \
-    vendor/purity/prebuilt/apk/PurityU2D-PurityU2D.apk:system/app/PurityU2D-PurityU2D.apk
-

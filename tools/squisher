@@ -81,7 +81,7 @@ if [ "$WANT_SQUASHFS" -eq 1 ]; then
 fi
 
 REPACK=$OUT/repack.d
-echo -e $CL_RED"Sanitizing environment..."$CL_RST
+echo -e $CL_BLU"Sanitizing environment..."$CL_RST
 rm -rf $REPACK
 mkdir -p $REPACK
 echo -e
@@ -91,7 +91,7 @@ echo -e
 mkdir $REPACK/ota
 (
 cd $REPACK/ota
-echo -e $CL_RED"Unpacking $OTAPACKAGE..."$CL_RST
+echo -e $CL_BLU"Unpacking $OTAPACKAGE..."$CL_RST
 unzip $QUIET $OTAPACKAGE
 echo -e
 
@@ -179,17 +179,17 @@ MODVERSION="$VERSION"
 OUTFILE=$OUT/$MODVERSION.zip
 
 # Pack it up and sign
-echo -e $CL_RED"Zipping package..."$CL_RST
+echo -e $CL_BLU"Zipping package..."$CL_RST
 ( cd $REPACK/ota; zip $QUIET -r $REPACK/update.zip . )
 echo -e
-echo -e $CL_RED"Signing package..."$CL_RST
+echo -e $CL_BLU"Signing package..."$CL_RST
 SECURITYDIR=$ANDROID_BUILD_TOP/build/target/product/security
 java -Xmx1024m \
 	-jar $OUT_DIR/host/$OUT_TARGET_HOST/framework/signapk.jar \
 	-w $SECURITYDIR/testkey.x509.pem $SECURITYDIR/testkey.pk8 \
 	$REPACK/update.zip $OUTFILE
 echo -e
-echo -e $CL_RED"Cleaning up..."$CL_RST
+echo -e $CL_BLU"Cleaning up..."$CL_RST
 rm -rf $REPACK
 echo -e
 
@@ -201,11 +201,11 @@ $MD5 $img >$img.md5sum
 ZIPSIZE=`ls -lah $OUTFILE | awk '{ print $5}' `
 echo -e
 echo -e
-echo -e $CL_RED"====================== Package complete ====================================="$CL_RST
-echo -e $CL_RED"| ZIP:"$CL_RED" $OUTFILE                                                            "$CL_RST
-echo -e $CL_RED"| MD5:"$CL_RED" $(cat $img.md5sum | awk '{ print $1 }')                             "$CL_RST
-echo -e $CL_RED"| SIZE:"$CL_RED" $ZIPSIZE                                                           "$CL_RST
-echo -e $CL_RED"============================================================================="$CL_RST
+echo -e $CL_BLU"====================== Package complete ====================================="$CL_RST
+echo -e $CL_BLU"| ZIP:"$CL_BLU" $OUTFILE                                                            "$CL_RST
+echo -e $CL_BLU"| MD5:"$CL_BLU" $(cat $img.md5sum | awk '{ print $1 }')                             "$CL_RST
+echo -e $CL_BLU"| SIZE:"$CL_BLU" $ZIPSIZE                                                           "$CL_RST
+echo -e $CL_BLU"============================================================================="$CL_RST
 echo -e
 )
 

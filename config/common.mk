@@ -57,6 +57,10 @@ PRODUCT_COPY_FILES += \
 # T-Mobile theme engine
 include vendor/purity/config/themes_common.mk
 
+# Xposed Backup Script
+PRODUCT_COPY_FILES += \
+    vendor/purity/prebuilt/addon.d/90-xposed.sh:system/addon.d/90-xposed.sh
+
 # Enable SIP+VoIP
 PRODUCT_COPY_FILES += \
     frameworks/native/data/etc/android.software.sip.voip.xml:system/etc/permissions/android.software.sip.voip.xml

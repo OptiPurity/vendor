@@ -54,6 +54,10 @@ PRODUCT_COPY_FILES += \
     vendor/purity/prebuilt/etc/init.d/99SuperSUDaemon:system/etc/init.d/99SuperSUDaemon \
     vendor/purity/prebuilt/apk/Superuser.apk:system/app/Superuser.apk
 
+# Xposed Backup Script
+PRODUCT_COPY_FILES += \
+    vendor/purity/prebuilt/addon.d/90-xposed.sh:system/addon.d/90-xposed.sh
+
 # Enable SIP+VoIP
 PRODUCT_COPY_FILES += \
     frameworks/native/data/etc/android.software.sip.voip.xml:system/etc/permissions/android.software.sip.voip.xml

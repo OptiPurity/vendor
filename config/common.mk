@@ -47,13 +47,6 @@ PRODUCT_COPY_FILES += \
     vendor/purity/prebuilt/bin/backuptool.functions:system/bin/backuptool.functions \
     vendor/purity/prebuilt/bin/50-backupScript.sh:system/addon.d/50-backupScript.sh
 
-# SuperSU
-PRODUCT_COPY_FILES += \
-    vendor/purity/prebuilt/bin/su:system/xbin/daemonsu \
-    vendor/purity/prebuilt/bin/su:system/xbin/su \
-    vendor/purity/prebuilt/etc/init.d/99SuperSUDaemon:system/etc/init.d/99SuperSUDaemon \
-    vendor/purity/prebuilt/apk/Superuser.apk:system/app/Superuser.apk
-
 # Xposed Backup Script
 PRODUCT_COPY_FILES += \
     vendor/purity/prebuilt/addon.d/90-xposed.sh:system/addon.d/90-xposed.sh

@@ -1,9 +1,7 @@
 #!/bin/bash
 #
 # Squish a CM otapackage for distribution
-#
 # cyanogen
-# AOKP
 
 . $ANDROID_BUILD_TOP/vendor/purity/tools/colors
 
@@ -22,7 +20,7 @@ else
 fi
 
 if [ -z "$OUT" -o ! -d "$OUT" ]; then
-	echo -e "ERROR: $0 only works with a full build environment. $OUT should exist."
+	echo -e ${red}"ERROR: $0 only works with a full build environment. $OUT should exist."${txtrst}
 	exit 1
 fi
 
@@ -42,7 +40,7 @@ else
     OTAPACKAGE=$OUT/$TARGET_PRODUCT-ota-$TARGET_BUILD_VARIANT.$USER.zip
 fi
 if [ ! -f "$OTAPACKAGE" ]; then
-	echo -e "$OTAPACKAGE doesn't exist!";
+	echo -e ${red}"$OTAPACKAGE doesn't exist!"${txtrst};
 	exit 1
 fi
 
@@ -63,25 +61,25 @@ if [ "$WANT_SQUASHFS" -eq 1 ]; then
 	if type mksquashfs >/dev/null 2>&1; then
 		if mksquashfs -version | grep -q "version $MKSQUASHFS_VER_REQ"; then :; else
 			echo -e
-			echo -e $CL_RED"ERROR: mksquashfs must be at least version $MKSQUASHFS_VER_REQ for this build."$CL_RST
+			echo -e ${red}"ERROR: mksquashfs must be at least version $MKSQUASHFS_VER_REQ for this build."${txtrst}
 			fatal=1
 		fi
 	else
 		echo -e
-		echo -e $CL_RED"ERROR: $TARGET_PRODUCT requires mksquashfs."$CL_RST
+		echo -e ${red}"ERROR: $TARGET_PRODUCT requires mksquashfs."${txtrst}
 		fatal=1
 	fi
 
 	if [ "$fatal" -ne 0 ]; then
 		echo -e
-		echo -e $CL_YLW"       Unoptimized package is still available at"
-		echo -e "         $OTAPACKAGE"$CL_RST
+		echo -e ${red}"       Unoptimized package is still available at"
+		echo -e "         $OTAPACKAGE"${txtrst}
 		exit $fatal
 	fi
 fi
 
 REPACK=$OUT/repack.d
-echo -e $CL_BLU"Sanitizing environment..."$CL_RST
+printf "Sanitizing Environment..."
 rm -rf $REPACK
 mkdir -p $REPACK
 echo -e
@@ -91,7 +89,7 @@ echo -e
 mkdir $REPACK/ota
 (
 cd $REPACK/ota
-echo -e $CL_BLU"Unpacking $OTAPACKAGE..."$CL_RST
+printf "Unpacking $OTAPACKAGE..."
 unzip $QUIET $OTAPACKAGE
 echo -e
 
@@ -179,17 +177,17 @@ MODVERSION="$VERSION"
 OUTFILE=$OUT/$MODVERSION.zip
 
 # Pack it up and sign
-echo -e $CL_BLU"Zipping package..."$CL_RST
+echo -e ${grn}"Zipping package..."${txtrst}
 ( cd $REPACK/ota; zip $QUIET -r $REPACK/update.zip . )
 echo -e
-echo -e $CL_BLU"Signing package..."$CL_RST
+echo -e ${grn}"Signing package..."${txtrst}
 SECURITYDIR=$ANDROID_BUILD_TOP/build/target/product/security
 java -Xmx1024m \
 	-jar $OUT_DIR/host/$OUT_TARGET_HOST/framework/signapk.jar \
 	-w $SECURITYDIR/testkey.x509.pem $SECURITYDIR/testkey.pk8 \
 	$REPACK/update.zip $OUTFILE
 echo -e
-echo -e $CL_BLU"Cleaning up..."$CL_RST
+echo -e ${grn}"Cleaning up..."${txtrst}
 rm -rf $REPACK
 echo -e
 
@@ -201,11 +199,11 @@ $MD5 $img >$img.md5sum
 ZIPSIZE=`ls -lah $OUTFILE | awk '{ print $5}' `
 echo -e
 echo -e
-echo -e $CL_BLU"====================== Package complete ====================================="$CL_RST
-echo -e $CL_BLU"| ZIP:"$CL_BLU" $OUTFILE                                                            "$CL_RST
-echo -e $CL_BLU"| MD5:"$CL_BLU" $(cat $img.md5sum | awk '{ print $1 }')                             "$CL_RST
-echo -e $CL_BLU"| SIZE:"$CL_BLU" $ZIPSIZE                                                           "$CL_RST
-echo -e $CL_BLU"============================================================================="$CL_RST
+echo -e ${bldgrn}"====================== Package complete ====================================="${txtrst}
+echo -e ${bldgrn}"| ZIP:"${grn}" $OUTFILE                                                            "${txtrst}
+echo -e ${bldgrn}"| MD5:"${grn}" $(cat $img.md5sum | awk '{ print $1 }')                             "${txtrst}
+echo -e ${bldgrn}"| SIZE:"${grn}" $ZIPSIZE                                                           "${txtrst}
+echo -e ${bldgrn}"============================================================================="${txtrst}
 echo -e
 )
 

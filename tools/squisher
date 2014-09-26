@@ -172,7 +172,7 @@ rm -rf $REPACK/ota/recovery
 
 #MODVERSION=`sed -n -e'/ro\.modversion/s/^.*=//p' $REPACK/ota/system/build.prop`
 export curdate=`date "+%m-%d-%Y"`
-VERSION=Cl3Kener-OptiPurity-N5-Theme-Engine-$curdate
+VERSION=Cl3Kener-OptiPurity-N5-Theme-Engine-GCC47-$curdate
 MODVERSION="$VERSION"
 OUTFILE=$OUT/$MODVERSION.zip
 
